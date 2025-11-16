@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Mockup {
+  id          String   @id @default(cuid())
+  name        String
+  imageUrl    String
+  designAreaX Float
+  designAreaY Float
+  designAreaWidth  Float
+  designAreaHeight Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  jobDesigns JobDesign[]
+}
+
+model Design {
+  id        String   @id @default(cuid())
+  name      String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  
+  jobDesigns JobDesign[]
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // pending, processing, completed, failed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  jobDesigns JobDesign[]
+}
+
+model JobDesign {
+  id          String   @id @default(cuid())
+  jobId       String
+  mockupId    String
+  designId    String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  mockup      Mockup   @relation(fields: [mockupId], references: [id], onDelete: Cascade)
+  design      Design   @relation(fields: [designId], references: [id], onDelete: Cascade)
+  outputUrl   String?
+  status      String   @default("pending") // pending, processing, completed, failed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([jobId, mockupId, designId])
+}
+
