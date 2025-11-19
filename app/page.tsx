@@ -328,22 +328,32 @@ export default function Home() {
   ]
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float"></div>
+        <div className="absolute top-0 -right-4 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-8 left-20 w-96 h-96 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style={{ animationDelay: '4s' }}></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-full mx-auto px-6 py-4">
+      <header className="relative glass border-b border-white/20 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-full mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="w-14 h-14 gradient-vibrant rounded-2xl flex items-center justify-center shadow-glow-purple transform hover:scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-accent rounded-full border-2 border-white animate-pulse"></div>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Mockup Design Tool
+                <h1 className="text-3xl font-display text-gradient">
+                  Print Studio
                 </h1>
-                <p className="text-sm text-gray-500">Batch compositing made easy</p>
+                <p className="text-sm text-gray-600 font-medium">Professional Mockup Design Tool</p>
               </div>
             </div>
             <div className="w-80">
@@ -359,11 +369,15 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="relative flex h-[calc(100vh-88px)]">
         {/* Sidebar - Steps Navigation */}
-        <aside className="w-80 bg-white/60 backdrop-blur-lg border-r border-gray-200 p-6 overflow-y-auto">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">Workflow Steps</h2>
-          <div className="space-y-3">
+        <aside className="relative w-80 glass border-r border-white/20 p-6 overflow-y-auto">
+          <div className="mb-8">
+            <h2 className="text-xl font-display text-gray-800 mb-2">Workflow</h2>
+            <p className="text-xs text-gray-500">Follow the steps to create your designs</p>
+          </div>
+          
+          <div className="space-y-4">
             {steps.map((step, index) => {
               const isActive = activeStep === step.id
               const isCompleted = activeStep > step.id
@@ -371,47 +385,53 @@ export default function Home() {
                                step.id === 4 && (selectedMockupIds.length === 0 || selectedDesigns.length === 0)
 
               return (
-                <div
-                  key={step.id}
-                  className={`relative p-4 rounded-xl transition-all duration-300 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg scale-105'
-                      : isCompleted
-                      ? 'bg-green-50 text-green-700 border-2 border-green-200'
-                      : isDisabled
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer border-2 border-gray-200'
-                  }`}
-                  onClick={() => !isDisabled && setActiveStep(step.id)}
-                >
-                  <div className="flex items-start space-x-3">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                <div key={step.id} className="relative">
+                  <div
+                    className={`relative p-5 rounded-2xl transition-all duration-300 transform ${
                       isActive
-                        ? 'bg-white text-blue-600'
+                        ? 'gradient-vibrant text-white shadow-xl scale-105 z-10'
                         : isCompleted
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-300 text-gray-600'
-                    }`}>
-                      {isCompleted ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        step.id
-                      )}
+                        ? 'bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700 border-2 border-emerald-200 shadow-md'
+                        : isDisabled
+                        ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-2 border-gray-100'
+                        : 'glass text-gray-700 hover:shadow-lg cursor-pointer border-2 border-white/50 hover:border-purple-200'
+                    }`}
+                    onClick={() => !isDisabled && setActiveStep(step.id)}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-lg transition-all ${
+                        isActive
+                          ? 'bg-white text-purple-600 shadow-glow'
+                          : isCompleted
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        {isCompleted ? (
+                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          step.id
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 pt-1">
+                        <h3 className={`font-display text-base font-semibold mb-1 ${isActive ? 'text-white' : isCompleted ? 'text-emerald-800' : ''}`}>
+                          {step.title}
+                        </h3>
+                        <p className={`text-xs ${isActive ? 'text-white/90' : isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}>
+                          {step.description}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className={`font-semibold ${isActive ? 'text-white' : ''}`}>
-                        {step.title}
-                      </h3>
-                      <p className={`text-xs mt-1 ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
-                        {step.description}
-                      </p>
-                    </div>
+                    {isActive && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      </div>
+                    )}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`absolute left-6 top-12 w-0.5 h-8 ${
-                      isCompleted ? 'bg-green-300' : 'bg-gray-200'
+                    <div className={`absolute left-9 top-20 w-1 h-6 transition-colors ${
+                      isCompleted ? 'bg-gradient-to-b from-emerald-300 to-teal-300' : 'bg-gray-200'
                     }`} />
                   )}
                 </div>
@@ -421,16 +441,26 @@ export default function Home() {
 
           {/* Status Info */}
           {currentMockup && (
-            <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">Current Status</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Mockup:</span>
-                  <span className="font-medium text-green-600">✓ Loaded</span>
+            <div className="mt-8 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-md">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h3 className="text-sm font-display text-blue-900">Current Status</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-medium">Mockup:</span>
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold flex items-center space-x-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Loaded</span>
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Designs:</span>
-                  <span className="font-medium">{selectedDesigns.length} files</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-medium">Designs:</span>
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
+                    {selectedDesigns.length} files
+                  </span>
                 </div>
               </div>
             </div>
@@ -438,26 +468,33 @@ export default function Home() {
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="relative flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto">
             {/* Step 1: Upload Mockup */}
             {activeStep === 1 && (
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-200">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">1</span>
+              <div className="card-modern p-10 animate-float">
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="w-16 h-16 gradient-vibrant rounded-2xl flex items-center justify-center shadow-glow-purple">
+                    <span className="text-white font-display text-2xl font-bold">1</span>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Upload Mockup</h2>
-                    <p className="text-gray-500">Chọn file mockup của bạn (PNG/JPG). Bạn có thể tạo nhiều mockups.</p>
+                    <h2 className="text-3xl font-display text-gray-800 mb-2">Upload Mockup</h2>
+                    <p className="text-gray-600 font-medium">Chọn file mockup của bạn (PNG/JPG). Bạn có thể tạo nhiều mockups.</p>
                   </div>
                 </div>
                 {mockups.length > 0 && (
-                  <div className="mb-6 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      💡 Bạn đã có <strong>{mockups.length}</strong> mockup{mockups.length !== 1 ? 's' : ''}. 
-                      Upload thêm mockup mới hoặc chọn từ danh sách ở header.
-                    </p>
+                  <div className="mb-8 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-md">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-blue-900 font-medium">
+                        Bạn đã có <strong className="text-blue-700">{mockups.length}</strong> mockup{mockups.length !== 1 ? 's' : ''}. 
+                        Upload thêm mockup mới hoặc chọn từ danh sách ở header.
+                      </p>
+                    </div>
                   </div>
                 )}
                 <MockupUpload onUploadComplete={handleMockupUpload} />
@@ -466,19 +503,26 @@ export default function Home() {
 
             {/* Step 2: Define Design Area */}
             {activeStep === 2 && currentMockup && (
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-200">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">2</span>
+              <div className="card-modern p-10">
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center shadow-glow">
+                    <span className="text-white font-display text-2xl font-bold">2</span>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-800">Define Design Area</h2>
-                    <p className="text-gray-500">Kéo và resize khung để xác định vùng design. Upload design để xem preview real-time.</p>
+                    <h2 className="text-3xl font-display text-gray-800 mb-2">Define Design Area</h2>
+                    <p className="text-gray-600 font-medium">Kéo và resize khung để xác định vùng design. Upload design để xem preview real-time.</p>
                     {areaSelectedMockupIds.length > 1 && (
-                      <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-800">
-                          💡 <strong>{areaSelectedMockupIds.length} mockups</strong> đã được chọn. Thay đổi area sẽ áp dụng cho tất cả mockups đã chọn.
-                        </p>
+                      <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 shadow-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </div>
+                          <p className="text-sm text-purple-900 font-medium">
+                            <strong>{areaSelectedMockupIds.length} mockups</strong> đã được chọn. Thay đổi area sẽ áp dụng cho tất cả mockups đã chọn.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -677,12 +721,15 @@ export default function Home() {
                     />
                   )}
                 </div>
-                <div className="mt-4 flex justify-end">
+                <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setActiveStep(3)}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+                    className="btn-primary flex items-center space-x-2 group"
                   >
-                    Next: Upload Designs →
+                    <span>Next: Upload Designs</span>
+                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -690,24 +737,27 @@ export default function Home() {
 
             {/* Step 3: Upload Designs */}
             {activeStep === 3 && (
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-200">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">3</span>
+              <div className="card-modern p-10">
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="w-16 h-16 gradient-sunset rounded-2xl flex items-center justify-center shadow-glow">
+                    <span className="text-white font-display text-2xl font-bold">3</span>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Upload Designs (Batch)</h2>
-                    <p className="text-gray-500">Tải lên nhiều file design cùng lúc (PNG với nền trong suốt)</p>
+                    <h2 className="text-3xl font-display text-gray-800 mb-2">Upload Designs (Batch)</h2>
+                    <p className="text-gray-600 font-medium">Tải lên nhiều file design cùng lúc (PNG với nền trong suốt)</p>
                   </div>
                 </div>
                 <BatchDesignUpload onUploadComplete={handleDesignsUpload} />
                 {selectedDesigns.length > 0 && currentMockup && (
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-8 flex justify-end">
                     <button
                       onClick={() => setActiveStep(4)}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+                      className="btn-secondary flex items-center space-x-2 group"
                     >
-                      Next: Process Job →
+                      <span>Next: Process Job</span>
+                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
                     </button>
                   </div>
                 )}
@@ -716,14 +766,14 @@ export default function Home() {
 
             {/* Step 4: Process Job */}
             {activeStep === 4 && selectedDesigns.length > 0 && (
-              <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-200">
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">4</span>
+              <div className="card-modern p-10">
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="w-16 h-16 gradient-print rounded-2xl flex items-center justify-center shadow-glow">
+                    <span className="text-white font-display text-2xl font-bold">4</span>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Process Batch Job</h2>
-                    <p className="text-gray-500">Chọn mockups và xử lý để tạo bộ sản phẩm</p>
+                    <h2 className="text-3xl font-display text-gray-800 mb-2">Process Batch Job</h2>
+                    <p className="text-gray-600 font-medium">Chọn mockups và xử lý để tạo bộ sản phẩm</p>
                   </div>
                 </div>
 
@@ -738,19 +788,19 @@ export default function Home() {
 
                 {/* Job Info */}
                 {selectedMockupIds.length > 0 && selectedDesigns.length > 0 && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200">
+                  <div className="mb-8 p-6 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl text-white shadow-xl">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-800 mb-1">Job Summary</h3>
-                        <p className="text-sm text-gray-600">
-                          {selectedMockupIds.length} mockup{selectedMockupIds.length !== 1 ? 's' : ''} × {selectedDesigns.length} design{selectedDesigns.length !== 1 ? 's' : ''} = <strong className="text-purple-600">{selectedMockupIds.length * selectedDesigns.length} combinations</strong>
+                        <h3 className="font-display text-xl mb-2">Job Summary</h3>
+                        <p className="text-purple-100 text-sm">
+                          {selectedMockupIds.length} mockup{selectedMockupIds.length !== 1 ? 's' : ''} × {selectedDesigns.length} design{selectedDesigns.length !== 1 ? 's' : ''} = <strong className="text-white text-base">{selectedMockupIds.length * selectedDesigns.length} combinations</strong>
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-purple-600">
+                        <div className="text-5xl font-display font-bold text-white mb-1">
                           {selectedMockupIds.length * selectedDesigns.length}
                         </div>
-                        <div className="text-xs text-gray-500">Total outputs</div>
+                        <div className="text-sm text-purple-100 font-medium">Total outputs</div>
                       </div>
                     </div>
                   </div>
