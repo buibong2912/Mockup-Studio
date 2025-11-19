@@ -105,18 +105,35 @@ export default function Home() {
     }
   }
 
-  const handleMockupUpload = (mockup: any) => {
-    setMockups([mockup, ...mockups])
+  const handleMockupUpload = (uploadedMockups: any[]) => {
+    if (uploadedMockups.length === 0) return
+
+    // Add all new mockups to the list
+    setMockups((prev) => [...uploadedMockups, ...prev])
+    
+    // Update design areas for all new mockups
+    const newAreas: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> = {}
+    uploadedMockups.forEach((mockup) => {
+      newAreas[mockup.id] = normalizeMockupArea(mockup)
+    })
     setDesignAreas((prev) => ({
       ...prev,
-      [mockup.id]: normalizeMockupArea(mockup),
+      ...newAreas,
     }))
-    updateAreaSelection([mockup.id])
-    setCurrentMockup(mockup)
-    // Auto-select new mockup for multi-select
-    if (!selectedMockupIds.includes(mockup.id)) {
-      setSelectedMockupIds([...selectedMockupIds, mockup.id])
-    }
+    
+    // Set the first uploaded mockup as current
+    const firstMockup = uploadedMockups[0]
+    updateAreaSelection([firstMockup.id])
+    setCurrentMockup(firstMockup)
+    
+    // Auto-select all new mockups for multi-select
+    setSelectedMockupIds((prev) => {
+      const newIds = uploadedMockups
+        .map(m => m.id)
+        .filter(id => !prev.includes(id))
+      return [...newIds, ...prev]
+    })
+    
     setActiveStep(2)
   }
 

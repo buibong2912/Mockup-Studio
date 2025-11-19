@@ -121,6 +121,14 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   const isResizingRef = useRef(isResizing)
   const isRotatingRef = useRef(isRotating)
   const resizeHandleRef = useRef<ResizeHandle>(resizeHandle)
+  const onAreaChangeRef = useRef(onAreaChange)
+  const rafIdRef = useRef<number | null>(null)
+  const lastCallbackTimeRef = useRef(0)
+  const pendingAreaRef = useRef<{ area: typeof area; imageSize: typeof imageSize } | null>(null)
+
+  useEffect(() => {
+    onAreaChangeRef.current = onAreaChange
+  }, [onAreaChange])
 
   useEffect(() => {
     areaRef.current = area
@@ -132,77 +140,116 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
     resizeHandleRef.current = resizeHandle
   }, [area, dragStart, imageSize, isDragging, isResizing, isRotating, resizeHandle])
 
+  // Throttled callback - only call onAreaChange every 50ms to avoid lag
+  const triggerCallback = useRef(() => {
+    if (pendingAreaRef.current) {
+      onAreaChangeRef.current(pendingAreaRef.current.area, pendingAreaRef.current.imageSize)
+      pendingAreaRef.current = null
+    }
+    lastCallbackTimeRef.current = Date.now()
+  }).current
+
   const handleMouseMove = useRef((e: MouseEvent) => {
     if (!containerRef.current) return
 
-    const rect = containerRef.current.getBoundingClientRect()
-    const currentArea = areaRef.current
-    const currentDragStart = dragStartRef.current
-    const currentImageSize = imageSizeRef.current
-    const currentIsDragging = isDraggingRef.current
-    const currentIsResizing = isResizingRef.current
-    const currentIsRotating = isRotatingRef.current
-    const currentResizeHandle = resizeHandleRef.current
+    // Cancel any pending animation frame
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+    }
 
-    if (currentIsDragging) {
-      const newX = Math.max(0, Math.min(e.clientX - rect.left - currentDragStart.x + currentDragStart.areaX, currentImageSize.width - currentArea.width))
-      const newY = Math.max(0, Math.min(e.clientY - rect.top - currentDragStart.y + currentDragStart.areaY, currentImageSize.height - currentArea.height))
-      
-      const updatedArea = { ...currentArea, x: newX, y: newY }
-      setArea(updatedArea)
-      onAreaChange(updatedArea, currentImageSize)
-    } else if (currentIsRotating) {
-      const centerX = currentArea.x + currentArea.width / 2
-      const centerY = currentArea.y + currentArea.height / 2
-      const currentAngle = Math.atan2(
-        e.clientY - rect.top - centerY,
-        e.clientX - rect.left - centerX
-      )
-      const deltaAngle = currentAngle - currentDragStart.x
-      const newRotation = (currentDragStart.rotation + (deltaAngle * 180 / Math.PI)) % 360
-      const normalizedRotation = newRotation < 0 ? newRotation + 360 : newRotation
-      
-      const updatedArea = { ...currentArea, rotation: normalizedRotation }
-      setArea(updatedArea)
-      onAreaChange(updatedArea, currentImageSize)
-    } else if (currentIsResizing && currentResizeHandle) {
-      const deltaX = (e.clientX - currentDragStart.x) * (rect.width / currentImageSize.width)
-      const deltaY = (e.clientY - currentDragStart.y) * (rect.height / currentImageSize.height)
+    // Use requestAnimationFrame for smooth updates
+    rafIdRef.current = requestAnimationFrame(() => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
 
-      let newArea = { ...currentArea }
+      const currentArea = areaRef.current
+      const currentDragStart = dragStartRef.current
+      const currentImageSize = imageSizeRef.current
+      const currentIsDragging = isDraggingRef.current
+      const currentIsResizing = isResizingRef.current
+      const currentIsRotating = isRotatingRef.current
+      const currentResizeHandle = resizeHandleRef.current
 
-      if (currentResizeHandle === 'se') {
-        newArea.width = Math.max(50, Math.min(currentDragStart.areaW + deltaX, currentImageSize.width - currentDragStart.areaX))
-        newArea.height = Math.max(50, Math.min(currentDragStart.areaH + deltaY, currentImageSize.height - currentDragStart.areaY))
-      } else if (currentResizeHandle === 'sw') {
-        const newWidth = Math.max(50, Math.min(currentDragStart.areaW - deltaX, currentDragStart.areaX + currentDragStart.areaW))
-        const newX = currentDragStart.areaX + currentDragStart.areaW - newWidth
-        newArea.x = Math.max(0, newX)
-        newArea.width = newWidth
-        newArea.height = Math.max(50, Math.min(currentDragStart.areaH + deltaY, currentImageSize.height - currentDragStart.areaY))
-      } else if (currentResizeHandle === 'ne') {
-        const newHeight = Math.max(50, Math.min(currentDragStart.areaH - deltaY, currentDragStart.areaY + currentDragStart.areaH))
-        const newY = currentDragStart.areaY + currentDragStart.areaH - newHeight
-        newArea.y = Math.max(0, newY)
-        newArea.height = newHeight
-        newArea.width = Math.max(50, Math.min(currentDragStart.areaW + deltaX, currentImageSize.width - currentDragStart.areaX))
-      } else if (currentResizeHandle === 'nw') {
-        const newWidth = Math.max(50, Math.min(currentDragStart.areaW - deltaX, currentDragStart.areaX + currentDragStart.areaW))
-        const newHeight = Math.max(50, Math.min(currentDragStart.areaH - deltaY, currentDragStart.areaY + currentDragStart.areaH))
-        const newX = currentDragStart.areaX + currentDragStart.areaW - newWidth
-        const newY = currentDragStart.areaY + currentDragStart.areaH - newHeight
-        newArea.x = Math.max(0, newX)
-        newArea.y = Math.max(0, newY)
-        newArea.width = newWidth
-        newArea.height = newHeight
+      let updatedArea: typeof area | null = null
+
+      if (currentIsDragging) {
+        const newX = Math.max(0, Math.min(e.clientX - rect.left - currentDragStart.x + currentDragStart.areaX, currentImageSize.width - currentArea.width))
+        const newY = Math.max(0, Math.min(e.clientY - rect.top - currentDragStart.y + currentDragStart.areaY, currentImageSize.height - currentArea.height))
+        updatedArea = { ...currentArea, x: newX, y: newY }
+      } else if (currentIsRotating) {
+        const centerX = currentArea.x + currentArea.width / 2
+        const centerY = currentArea.y + currentArea.height / 2
+        const currentAngle = Math.atan2(
+          e.clientY - rect.top - centerY,
+          e.clientX - rect.left - centerX
+        )
+        const deltaAngle = currentAngle - currentDragStart.x
+        const newRotation = (currentDragStart.rotation + (deltaAngle * 180 / Math.PI)) % 360
+        const normalizedRotation = newRotation < 0 ? newRotation + 360 : newRotation
+        updatedArea = { ...currentArea, rotation: normalizedRotation }
+      } else if (currentIsResizing && currentResizeHandle) {
+        const deltaX = (e.clientX - currentDragStart.x) * (rect.width / currentImageSize.width)
+        const deltaY = (e.clientY - currentDragStart.y) * (rect.height / currentImageSize.height)
+
+        let newArea = { ...currentArea }
+
+        if (currentResizeHandle === 'se') {
+          newArea.width = Math.max(50, Math.min(currentDragStart.areaW + deltaX, currentImageSize.width - currentDragStart.areaX))
+          newArea.height = Math.max(50, Math.min(currentDragStart.areaH + deltaY, currentImageSize.height - currentDragStart.areaY))
+        } else if (currentResizeHandle === 'sw') {
+          const newWidth = Math.max(50, Math.min(currentDragStart.areaW - deltaX, currentDragStart.areaX + currentDragStart.areaW))
+          const newX = currentDragStart.areaX + currentDragStart.areaW - newWidth
+          newArea.x = Math.max(0, newX)
+          newArea.width = newWidth
+          newArea.height = Math.max(50, Math.min(currentDragStart.areaH + deltaY, currentImageSize.height - currentDragStart.areaY))
+        } else if (currentResizeHandle === 'ne') {
+          const newHeight = Math.max(50, Math.min(currentDragStart.areaH - deltaY, currentDragStart.areaY + currentDragStart.areaH))
+          const newY = currentDragStart.areaY + currentDragStart.areaH - newHeight
+          newArea.y = Math.max(0, newY)
+          newArea.height = newHeight
+          newArea.width = Math.max(50, Math.min(currentDragStart.areaW + deltaX, currentImageSize.width - currentDragStart.areaX))
+        } else if (currentResizeHandle === 'nw') {
+          const newWidth = Math.max(50, Math.min(currentDragStart.areaW - deltaX, currentDragStart.areaX + currentDragStart.areaW))
+          const newHeight = Math.max(50, Math.min(currentDragStart.areaH - deltaY, currentDragStart.areaY + currentDragStart.areaH))
+          const newX = currentDragStart.areaX + currentDragStart.areaW - newWidth
+          const newY = currentDragStart.areaY + currentDragStart.areaH - newHeight
+          newArea.x = Math.max(0, newX)
+          newArea.y = Math.max(0, newY)
+          newArea.width = newWidth
+          newArea.height = newHeight
+        }
+
+        updatedArea = newArea
       }
 
-      setArea(newArea)
-      onAreaChange(newArea, currentImageSize)
-    }
+      if (updatedArea) {
+        // Update local state immediately for smooth UI
+        setArea(updatedArea)
+        
+        // Throttle callback - only call every 50ms
+        pendingAreaRef.current = { area: updatedArea, imageSize: currentImageSize }
+        const now = Date.now()
+        if (now - lastCallbackTimeRef.current >= 50) {
+          triggerCallback()
+        }
+      }
+
+      rafIdRef.current = null
+    })
   }).current
 
   const handleMouseUp = useRef(() => {
+    // Cancel any pending animation frame
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+
+    // Trigger final callback on mouse up
+    if (pendingAreaRef.current) {
+      triggerCallback()
+    }
+
     setIsDragging(false)
     setIsResizing(false)
     setIsRotating(false)
@@ -216,6 +263,11 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
+        // Cleanup any pending animation frame
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = null
+        }
       }
     }
   }, [isDragging, isResizing, isRotating, handleMouseMove, handleMouseUp])

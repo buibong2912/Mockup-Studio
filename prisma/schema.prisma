@@ -58,4 +58,3 @@ model JobDesign {
   
   @@unique([jobId, mockupId, designId])
 }
-

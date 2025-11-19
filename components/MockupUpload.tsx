@@ -4,22 +4,24 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 
 interface MockupUploadProps {
-  onUploadComplete: (mockup: any) => void
+  onUploadComplete: (mockups: any[]) => void
 }
 
 export default function MockupUpload({ onUploadComplete }: MockupUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
 
-    const file = acceptedFiles[0]
     setUploading(true)
+    setUploadProgress({ current: 0, total: acceptedFiles.length })
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
-      formData.append('name', file.name.replace(/\.[^/.]+$/, ''))
+      acceptedFiles.forEach(file => {
+        formData.append('files', file)
+      })
 
       const response = await fetch('/api/mockups/upload', {
         method: 'POST',
@@ -31,12 +33,14 @@ export default function MockupUpload({ onUploadComplete }: MockupUploadProps) {
       }
 
       const data = await response.json()
-      onUploadComplete(data.mockup)
+      setUploadProgress({ current: data.mockups.length, total: acceptedFiles.length })
+      onUploadComplete(data.mockups)
     } catch (error) {
-      console.error('Error uploading mockup:', error)
-      alert('Failed to upload mockup')
+      console.error('Error uploading mockups:', error)
+      alert('Failed to upload mockups')
     } finally {
       setUploading(false)
+      setUploadProgress({ current: 0, total: 0 })
     }
   }, [onUploadComplete])
 
@@ -46,7 +50,7 @@ export default function MockupUpload({ onUploadComplete }: MockupUploadProps) {
       'image/png': ['.png'],
       'image/jpeg': ['.jpg', '.jpeg'],
     },
-    maxFiles: 1,
+    multiple: true,
   })
 
   return (
@@ -67,7 +71,17 @@ export default function MockupUpload({ onUploadComplete }: MockupUploadProps) {
         {uploading ? (
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 font-medium">Uploading...</p>
+            <p className="text-gray-600 font-medium mb-2">
+              Uploading {uploadProgress.current} of {uploadProgress.total} mockup{uploadProgress.total !== 1 ? 's' : ''}...
+            </p>
+            {uploadProgress.total > 0 && (
+              <div className="w-64 bg-gray-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                ></div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center">
@@ -80,10 +94,10 @@ export default function MockupUpload({ onUploadComplete }: MockupUploadProps) {
             </div>
             <p className={`text-lg font-semibold mb-2 ${isDragActive ? 'text-blue-600' : 'text-gray-700'}`}>
               {isDragActive
-                ? 'Drop the mockup here'
-                : 'Drag & drop a mockup image'}
+                ? 'Drop the mockups here'
+                : 'Drag & drop mockup images'}
             </p>
-            <p className="text-sm text-gray-500 mb-4">or click to browse</p>
+            <p className="text-sm text-gray-500 mb-4">or click to browse (multiple files supported)</p>
             <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
