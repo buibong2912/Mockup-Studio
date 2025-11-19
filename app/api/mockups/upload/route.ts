@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-     
+      console.log(`[POST /api/mockups/upload] Created mockup: ${mockup.id} - ${mockup.name}`)
       mockups.push(mockup)
     }
 
