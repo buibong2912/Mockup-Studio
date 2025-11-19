@@ -1,4 +1,5 @@
 import path from 'path'
+import { existsSync } from 'fs'
 
 /**
  * Sanitize và rút ngắn tên file để tránh lỗi path quá dài trên Windows
@@ -32,6 +33,41 @@ export async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Tìm đường dẫn đến thư mục public
+ * Hỗ trợ cả development và production (standalone mode)
+ */
+export function getPublicPath(): string {
+  const cwd = process.cwd()
+  
+  // Các đường dẫn có thể có của thư mục public
+  const possiblePaths = [
+    path.join(cwd, 'public'), // Normal case
+    path.join(cwd, '..', 'public'), // Standalone mode (cwd is .next/standalone)
+    path.join(cwd, '../..', 'public'), // Nested standalone
+    '/app/public', // Docker container
+    path.join(process.env.PUBLIC_DIR || '', 'public'), // Custom env variable
+  ]
+  
+  // Tìm đường dẫn đầu tiên tồn tại
+  for (const publicPath of possiblePaths) {
+    if (existsSync(publicPath)) {
+      return publicPath
+    }
+  }
+  
+  // Fallback: trả về đường dẫn mặc định
+  return path.join(cwd, 'public')
+}
+
+/**
+ * Lấy đường dẫn đầy đủ đến file trong thư mục public
+ */
+export function getPublicFilePath(relativePath: string): string {
+  const publicPath = getPublicPath()
+  return path.join(publicPath, relativePath)
 }
 
 

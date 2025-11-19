@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { getPublicFilePath } from '@/lib/file-utils'
 
 export async function GET(
   request: NextRequest,
@@ -14,24 +15,38 @@ export async function GET(
     // Join path segments to get the full file path
     const filePath = resolvedParams.path.join('/')
     
+    console.log(`[GET /api/uploads] Requested path: ${filePath}`)
+    
     // Security: Only allow files from uploads or outputs directory
     if (!filePath.startsWith('mockups/') && !filePath.startsWith('designs/') && !filePath.startsWith('outputs/')) {
+      console.error(`[GET /api/uploads] Invalid path: ${filePath}`)
       return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
     }
 
-    // Construct full file path
+    // Construct full file path using helper function
     // outputs/... goes to public/outputs, others go to public/uploads
     let fullPath: string
     if (filePath.startsWith('outputs/')) {
-      fullPath = join(process.cwd(), 'public', filePath)
+      fullPath = getPublicFilePath(filePath)
     } else {
-      fullPath = join(process.cwd(), 'public', 'uploads', filePath)
+      fullPath = getPublicFilePath(`uploads/${filePath}`)
     }
+
+    console.log(`[GET /api/uploads] Looking for file at: ${fullPath}`)
+    console.log(`[GET /api/uploads] process.cwd(): ${process.cwd()}`)
 
     // Check if file exists
     if (!existsSync(fullPath)) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 })
+      console.error(`[GET /api/uploads] File not found: ${fullPath}`)
+      return NextResponse.json({ 
+        error: 'File not found',
+        requestedPath: filePath,
+        checkedPath: fullPath,
+        cwd: process.cwd()
+      }, { status: 404 })
     }
+
+    console.log(`[GET /api/uploads] Serving file: ${fullPath}`)
 
     // Read file
     const fileBuffer = await readFile(fullPath)
@@ -48,9 +63,13 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error serving file:', error)
+    console.error('[GET /api/uploads] Error serving file:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to serve file' },
+      { 
+        error: 'Failed to serve file',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }

@@ -3,7 +3,7 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { prisma } from '@/lib/prisma'
 import { ensureDirectoryExists } from '@/lib/image-processor'
-import { sanitizeFilename } from '@/lib/file-utils'
+import { sanitizeFilename, getPublicFilePath } from '@/lib/file-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +15,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure upload directory exists
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'mockups')
+    const uploadDir = getPublicFilePath('uploads/mockups')
     await ensureDirectoryExists(uploadDir)
+
+    console.log(`[POST /api/mockups/upload] Upload directory: ${uploadDir}`)
+    console.log(`[POST /api/mockups/upload] process.cwd(): ${process.cwd()}`)
 
     const mockups = []
 
@@ -29,7 +32,10 @@ export async function POST(request: NextRequest) {
       const sanitized = sanitizeFilename(file.name, 120)
       const filename = `${Date.now()}-${randomStr}-${sanitized}`
       const filepath = join(uploadDir, filename)
+      
+      console.log(`[POST /api/mockups/upload] Saving file to: ${filepath}`)
       await writeFile(filepath, buffer)
+      console.log(`[POST /api/mockups/upload] File saved successfully: ${filepath}`)
 
       const imageUrl = `/uploads/mockups/${filename}`
 
