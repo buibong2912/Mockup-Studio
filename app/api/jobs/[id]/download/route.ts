@@ -62,6 +62,8 @@ export async function GET(
     }
 
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
+    // Convert Buffer to Uint8Array which is a valid BodyInit type
+    const zipUint8Array = new Uint8Array(zipBuffer)
 
     // Get unique mockup names for filename
     const mockupNames = Array.from(mockupGroups.keys()).map(name => name.replace(/[^a-zA-Z0-9\-_]/g, '_').substring(0, 20))
@@ -69,7 +71,7 @@ export async function GET(
       ? `${mockupNames[0]}_outputs.zip`
       : `multi_mockup_outputs_${Date.now()}.zip`
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(zipUint8Array, {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="${zipFilename}"`,

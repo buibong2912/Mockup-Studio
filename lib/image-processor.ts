@@ -7,6 +7,7 @@ export interface DesignArea {
   y: number
   width: number
   height: number
+  rotation?: number // Rotation in degrees
 }
 
 export async function compositeDesignOnMockup(
@@ -49,20 +50,33 @@ export async function compositeDesignOnMockup(
   const designMetadata = await design.metadata()
 
   // Resize design to fit the design area
-  const resizedDesign = await design
+  let processedDesign = design
     .resize(Math.round(scaledArea.width), Math.round(scaledArea.height), {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
-    .toBuffer()
+
+  // Apply rotation if specified
+  if (designArea.rotation && designArea.rotation !== 0) {
+    processedDesign = processedDesign.rotate(designArea.rotation, {
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+  }
+
+  const resizedDesign = await processedDesign.toBuffer()
+
+  // Calculate composite position (accounting for rotation)
+  // For rotation, we need to center the rotated design in the area
+  const compositeLeft = Math.round(scaledArea.x)
+  const compositeTop = Math.round(scaledArea.y)
 
   // Composite design onto mockup
   await mockup
     .composite([
       {
         input: resizedDesign,
-        left: Math.round(scaledArea.x),
-        top: Math.round(scaledArea.y)
+        left: compositeLeft,
+        top: compositeTop
       }
     ])
     .toFile(outputPath)

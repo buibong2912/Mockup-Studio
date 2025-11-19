@@ -122,6 +122,7 @@ async function processJob(jobId: string) {
             y: jobDesign.mockup.designAreaY,
             width: jobDesign.mockup.designAreaWidth,
             height: jobDesign.mockup.designAreaHeight,
+            rotation: jobDesign.mockup.designAreaRotation || 0,
           },
           outputPath
         )

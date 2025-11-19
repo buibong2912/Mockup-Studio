@@ -11,8 +11,9 @@ interface DesignAreaSelectorProps {
     designAreaY: number
     designAreaWidth: number
     designAreaHeight: number
+    designAreaRotation?: number
   }
-  onAreaChange: (area: { x: number; y: number; width: number; height: number }, imageSize: { width: number; height: number }) => void
+  onAreaChange: (area: { x: number; y: number; width: number; height: number; rotation: number }, imageSize: { width: number; height: number }) => void
   previewDesign?: {
     id: string
     imageUrl: string
@@ -29,11 +30,13 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
     y: mockup.designAreaY,
     width: mockup.designAreaWidth,
     height: mockup.designAreaHeight,
+    rotation: mockup.designAreaRotation || 0,
   })
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
+  const [isRotating, setIsRotating] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle>(null)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, areaX: 0, areaY: 0, areaW: 0, areaH: 0 })
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, areaX: 0, areaY: 0, areaW: 0, areaH: 0, rotation: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -58,11 +61,12 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
         y: mockup.designAreaY * imageSize.height,
         width: mockup.designAreaWidth * imageSize.width,
         height: mockup.designAreaHeight * imageSize.height,
+        rotation: mockup.designAreaRotation || 0,
       })
     }
   }, [mockup, imageSize])
 
-  const handleMouseDown = (e: React.MouseEvent, type: 'drag' | ResizeHandle) => {
+  const handleMouseDown = (e: React.MouseEvent, type: 'drag' | 'rotate' | ResizeHandle) => {
     e.stopPropagation()
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
@@ -76,6 +80,24 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
         areaY: area.y,
         areaW: area.width,
         areaH: area.height,
+        rotation: area.rotation,
+      })
+    } else if (type === 'rotate') {
+      setIsRotating(true)
+      const centerX = area.x + area.width / 2
+      const centerY = area.y + area.height / 2
+      const startAngle = Math.atan2(
+        (e.clientY - rect.top) - centerY,
+        (e.clientX - rect.left) - centerX
+      )
+      setDragStart({
+        x: startAngle,
+        y: 0,
+        areaX: area.x,
+        areaY: area.y,
+        areaW: area.width,
+        areaH: area.height,
+        rotation: area.rotation,
       })
     } else {
       setIsResizing(true)
@@ -87,6 +109,7 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
         areaY: area.y,
         areaW: area.width,
         areaH: area.height,
+        rotation: area.rotation,
       })
     }
   }
@@ -96,6 +119,7 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   const imageSizeRef = useRef(imageSize)
   const isDraggingRef = useRef(isDragging)
   const isResizingRef = useRef(isResizing)
+  const isRotatingRef = useRef(isRotating)
   const resizeHandleRef = useRef<ResizeHandle>(resizeHandle)
 
   useEffect(() => {
@@ -104,8 +128,9 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
     imageSizeRef.current = imageSize
     isDraggingRef.current = isDragging
     isResizingRef.current = isResizing
+    isRotatingRef.current = isRotating
     resizeHandleRef.current = resizeHandle
-  }, [area, dragStart, imageSize, isDragging, isResizing, resizeHandle])
+  }, [area, dragStart, imageSize, isDragging, isResizing, isRotating, resizeHandle])
 
   const handleMouseMove = useRef((e: MouseEvent) => {
     if (!containerRef.current) return
@@ -116,6 +141,7 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
     const currentImageSize = imageSizeRef.current
     const currentIsDragging = isDraggingRef.current
     const currentIsResizing = isResizingRef.current
+    const currentIsRotating = isRotatingRef.current
     const currentResizeHandle = resizeHandleRef.current
 
     if (currentIsDragging) {
@@ -123,6 +149,20 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
       const newY = Math.max(0, Math.min(e.clientY - rect.top - currentDragStart.y + currentDragStart.areaY, currentImageSize.height - currentArea.height))
       
       const updatedArea = { ...currentArea, x: newX, y: newY }
+      setArea(updatedArea)
+      onAreaChange(updatedArea, currentImageSize)
+    } else if (currentIsRotating) {
+      const centerX = currentArea.x + currentArea.width / 2
+      const centerY = currentArea.y + currentArea.height / 2
+      const currentAngle = Math.atan2(
+        e.clientY - rect.top - centerY,
+        e.clientX - rect.left - centerX
+      )
+      const deltaAngle = currentAngle - currentDragStart.x
+      const newRotation = (currentDragStart.rotation + (deltaAngle * 180 / Math.PI)) % 360
+      const normalizedRotation = newRotation < 0 ? newRotation + 360 : newRotation
+      
+      const updatedArea = { ...currentArea, rotation: normalizedRotation }
       setArea(updatedArea)
       onAreaChange(updatedArea, currentImageSize)
     } else if (currentIsResizing && currentResizeHandle) {
@@ -165,11 +205,12 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   const handleMouseUp = useRef(() => {
     setIsDragging(false)
     setIsResizing(false)
+    setIsRotating(false)
     setResizeHandle(null)
   }).current
 
   useEffect(() => {
-    if (isDragging || isResizing) {
+    if (isDragging || isResizing || isRotating) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
       return () => {
@@ -177,7 +218,7 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp])
+  }, [isDragging, isResizing, isRotating, handleMouseMove, handleMouseUp])
 
   const scaleX = imageSize.width > 0 ? area.x / imageSize.width : 0
   const scaleY = imageSize.height > 0 ? area.y / imageSize.height : 0
@@ -213,6 +254,8 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
                 top: `${area.y}px`,
                 width: `${area.width}px`,
                 height: `${area.height}px`,
+                transform: `rotate(${area.rotation}deg)`,
+                transformOrigin: 'center center',
               }}
               onMouseDown={(e) => handleMouseDown(e, 'drag')}
             >
@@ -221,21 +264,31 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
               </div>
               {/* Resize handles */}
               <div
-                className="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-nw-resize"
+                className="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-nw-resize z-10"
                 onMouseDown={(e) => handleMouseDown(e, 'nw')}
               />
               <div
-                className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-ne-resize"
+                className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-ne-resize z-10"
                 onMouseDown={(e) => handleMouseDown(e, 'ne')}
               />
               <div
-                className="absolute -bottom-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-sw-resize"
+                className="absolute -bottom-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-sw-resize z-10"
                 onMouseDown={(e) => handleMouseDown(e, 'sw')}
               />
               <div
-                className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-se-resize"
+                className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded cursor-se-resize z-10"
                 onMouseDown={(e) => handleMouseDown(e, 'se')}
               />
+              {/* Rotation handle - positioned above the area */}
+              <div
+                className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-purple-500 border-2 border-white rounded-full cursor-grab flex items-center justify-center z-10"
+                style={{ transform: `translateX(-50%) rotate(${-area.rotation}deg)` }}
+                onMouseDown={(e) => handleMouseDown(e, 'rotate')}
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
@@ -245,6 +298,9 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
               </div>
               <div>
                 <span className="font-medium">Size:</span> {Math.round(area.width)} × {Math.round(area.height)}
+              </div>
+              <div className="col-span-2">
+                <span className="font-medium">Rotation:</span> {Math.round(area.rotation)}°
               </div>
             </div>
             <div className="mt-2 text-xs text-gray-500">

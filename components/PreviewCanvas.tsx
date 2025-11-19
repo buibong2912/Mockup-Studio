@@ -10,6 +10,7 @@ interface PreviewCanvasProps {
     y: number
     width: number
     height: number
+    rotation?: number
   }
   imageSize: {
     width: number
@@ -78,7 +79,19 @@ export default function PreviewCanvas({
           drawX = designX + (designWidth - drawWidth) / 2
         }
 
-        ctx.drawImage(designImgRef.current, drawX, drawY, drawWidth, drawHeight)
+        // Apply rotation if specified
+        if (designArea.rotation && designArea.rotation !== 0) {
+          ctx.save()
+          const centerX = drawX + drawWidth / 2
+          const centerY = drawY + drawHeight / 2
+          ctx.translate(centerX, centerY)
+          ctx.rotate((designArea.rotation * Math.PI) / 180)
+          ctx.translate(-centerX, -centerY)
+          ctx.drawImage(designImgRef.current, drawX, drawY, drawWidth, drawHeight)
+          ctx.restore()
+        } else {
+          ctx.drawImage(designImgRef.current, drawX, drawY, drawWidth, drawHeight)
+        }
       }
     }
 

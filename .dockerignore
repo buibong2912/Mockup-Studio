@@ -1,0 +1,14 @@
+node_modules
+.next
+.turbo
+.git
+.gitignore
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+Dockerfile
+README.md
+public/uploads
+public/outputs
+tmp
+

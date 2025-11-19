@@ -6,7 +6,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { x, y, width, height } = await request.json()
+    const { x, y, width, height, rotation } = await request.json()
 
     const mockup = await prisma.mockup.update({
       where: { id: params.id },
@@ -15,6 +15,7 @@ export async function POST(
         designAreaY: y,
         designAreaWidth: width,
         designAreaHeight: height,
+        designAreaRotation: rotation !== undefined ? rotation : 0,
       }
     })
 

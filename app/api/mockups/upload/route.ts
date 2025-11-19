@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
         designAreaY: 0.4, // 40% from top
         designAreaWidth: 0.2, // 20% width
         designAreaHeight: 0.2, // 20% height
+        designAreaRotation: 0, // Default rotation
       }
     })
 
@@ -56,4 +57,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+
 

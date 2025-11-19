@@ -18,6 +18,7 @@ model Mockup {
   designAreaY Float
   designAreaWidth  Float
   designAreaHeight Float
+  designAreaRotation Float @default(0) // Rotation in degrees (0-360)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

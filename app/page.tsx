@@ -12,9 +12,36 @@ export default function Home() {
   const [mockups, setMockups] = useState<any[]>([])
   const [currentMockup, setCurrentMockup] = useState<any>(null)
   const [selectedMockupIds, setSelectedMockupIds] = useState<string[]>([])
+  const [areaSelectedMockupIds, setAreaSelectedMockupIds] = useState<string[]>([])
   const [selectedDesigns, setSelectedDesigns] = useState<any[]>([])
+  const [designAreas, setDesignAreas] = useState<Record<string, { x: number; y: number; width: number; height: number; rotation: number }>>({})
+
+  const normalizeMockupArea = (mockup: any) => ({
+    x: mockup.designAreaX,
+    y: mockup.designAreaY,
+    width: mockup.designAreaWidth,
+    height: mockup.designAreaHeight,
+    rotation: mockup.designAreaRotation || 0,
+  })
+
+  const applyAreaToMockup = (mockup: any, area: { x: number; y: number; width: number; height: number; rotation: number }) => ({
+    ...mockup,
+    designAreaX: area.x,
+    designAreaY: area.y,
+    designAreaWidth: area.width,
+    designAreaHeight: area.height,
+    designAreaRotation: area.rotation,
+  })
   const [previewDesign, setPreviewDesign] = useState<any>(null)
+  const [applyAreaToSelection, setApplyAreaToSelection] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
+
+  const updateAreaSelection = (ids: string[]) => {
+    setAreaSelectedMockupIds(ids)
+    if (ids.length <= 1) {
+      setApplyAreaToSelection(false)
+    }
+  }
 
   // Fetch all mockups on mount
   useEffect(() => {
@@ -26,24 +53,52 @@ export default function Home() {
       const response = await fetch('/api/mockups')
       if (response.ok) {
         const data = await response.json()
-        setMockups(data.mockups)
-        // Auto-select first mockup if available and none selected
-        if (data.mockups.length > 0) {
-          setCurrentMockup((prev) => {
-            if (!prev) {
-              const firstMockup = data.mockups[0]
-              // Also add to selectedMockupIds
-              setSelectedMockupIds((prevIds) => {
-                if (prevIds.length === 0) {
-                  return [firstMockup.id]
-                }
-                return prevIds
-              })
-              return firstMockup
+        const newMockups = data.mockups
+        const areaMap: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> = {}
+        newMockups.forEach((mockup: any) => {
+          areaMap[mockup.id] = normalizeMockupArea(mockup)
+        })
+        
+        // Preserve current mockup selection if it still exists
+        setCurrentMockup((prevCurrent: any) => {
+          if (prevCurrent) {
+            // Find the updated version of current mockup in new list
+            const updatedCurrent = newMockups.find((m: any) => m.id === prevCurrent.id)
+            if (updatedCurrent) {
+              return updatedCurrent
             }
-            return prev
-          })
-        }
+          }
+          // Auto-select first mockup only if no current mockup
+          if (!prevCurrent && newMockups.length > 0) {
+            const firstMockup = newMockups[0]
+            // Also add to selectedMockupIds
+            setSelectedMockupIds((prevIds) => {
+              if (prevIds.length === 0) {
+                return [firstMockup.id]
+              }
+              return prevIds
+            })
+            setAreaSelectedMockupIds((prevIds) => {
+              if (prevIds.length === 0) {
+                return [firstMockup.id]
+              }
+              return prevIds
+            })
+            return firstMockup
+          }
+          return prevCurrent
+        })
+        // Update mockups list and cached design areas
+        setMockups(newMockups)
+        setDesignAreas(areaMap)
+        setAreaSelectedMockupIds((prev) => {
+          const valid = prev.filter((id) => newMockups.some((m: any) => m.id === id))
+          const next = valid.length > 0 ? valid : (newMockups.length > 0 ? [newMockups[0].id] : [])
+          if (next.length <= 1) {
+            setApplyAreaToSelection(false)
+          }
+          return next
+        })
       }
     } catch (error) {
       console.error('Error fetching mockups:', error)
@@ -52,6 +107,11 @@ export default function Home() {
 
   const handleMockupUpload = (mockup: any) => {
     setMockups([mockup, ...mockups])
+    setDesignAreas((prev) => ({
+      ...prev,
+      [mockup.id]: normalizeMockupArea(mockup),
+    }))
+    updateAreaSelection([mockup.id])
     setCurrentMockup(mockup)
     // Auto-select new mockup for multi-select
     if (!selectedMockupIds.includes(mockup.id)) {
@@ -61,11 +121,22 @@ export default function Home() {
   }
 
   const handleSelectMockup = (mockup: any) => {
-    setCurrentMockup(mockup)
+    // Load the mockup with its area data from the current mockups list
+    // Use functional update to ensure we get the latest mockups list
+    setMockups((prevMockups) => {
+      const fullMockup = prevMockups.find(m => m.id === mockup.id) || mockup
+      // Set current mockup immediately with the found mockup
+      setCurrentMockup(fullMockup)
+      return prevMockups
+    })
     // Also add to selectedMockupIds if not already selected
-    if (!selectedMockupIds.includes(mockup.id)) {
-      setSelectedMockupIds([...selectedMockupIds, mockup.id])
-    }
+    setSelectedMockupIds((prevIds) => {
+      if (!prevIds.includes(mockup.id)) {
+        return [...prevIds, mockup.id]
+      }
+      return prevIds
+    })
+    updateAreaSelection([mockup.id])
     setActiveStep(2)
   }
 
@@ -78,6 +149,18 @@ export default function Home() {
       if (response.ok) {
         const updatedMockups = mockups.filter(m => m.id !== mockupId)
         setMockups(updatedMockups)
+        setDesignAreas((prev) => {
+          const { [mockupId]: _, ...rest } = prev
+          return rest
+        })
+        setAreaSelectedMockupIds((prev) => {
+          const filtered = prev.filter(id => id !== mockupId)
+          const next = filtered.length > 0 ? filtered : (updatedMockups.length > 0 ? [updatedMockups[0].id] : [])
+          if (next.length <= 1) {
+            setApplyAreaToSelection(false)
+          }
+          return next
+        })
         
         // Remove from selectedMockupIds
         const updatedSelectedIds = selectedMockupIds.filter(id => id !== mockupId)
@@ -110,7 +193,7 @@ export default function Home() {
     setActiveStep(1)
   }
 
-  const handleDesignAreaChange = async (area: { x: number; y: number; width: number; height: number }, imageSize: { width: number; height: number }) => {
+  const handleDesignAreaChange = async (area: { x: number; y: number; width: number; height: number; rotation: number }, imageSize: { width: number; height: number }) => {
     if (!currentMockup || imageSize.width === 0 || imageSize.height === 0) return
 
     // Normalize coordinates (0-1) before saving
@@ -119,22 +202,90 @@ export default function Home() {
       y: area.y / imageSize.height,
       width: area.width / imageSize.width,
       height: area.height / imageSize.height,
+      rotation: area.rotation || 0,
     }
 
-    try {
-      const response = await fetch(`/api/mockups/${currentMockup.id}/update-design-area`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(normalizedArea),
-      })
+    const shouldApplyToSelection =
+      applyAreaToSelection &&
+      areaSelectedMockupIds.length > 1 &&
+      areaSelectedMockupIds.includes(currentMockup.id)
 
-      if (response.ok) {
-        const data = await response.json()
-        setCurrentMockup(data.mockup)
-        // Update mockup in the list
-        setMockups(mockups.map(m => m.id === data.mockup.id ? data.mockup : m))
+    const targetMockupIds = shouldApplyToSelection ? areaSelectedMockupIds : [currentMockup.id]
+
+    // Update local caches immediately for better UX
+    setDesignAreas((prev) => {
+      const updated = { ...prev }
+      targetMockupIds.forEach((id) => {
+        updated[id] = { ...normalizedArea }
+      })
+      return updated
+    })
+
+    setMockups((prev) =>
+      prev.map((mockup) =>
+        targetMockupIds.includes(mockup.id)
+          ? applyAreaToMockup(mockup, normalizedArea)
+          : mockup
+      )
+    )
+
+    setCurrentMockup((prev: any) =>
+      prev && targetMockupIds.includes(prev.id)
+        ? applyAreaToMockup(prev, normalizedArea)
+        : prev
+    )
+
+    try {
+      // If multiple mockups are selected, update all of them
+      if (targetMockupIds.length > 1) {
+        const response = await fetch('/api/mockups/batch-update-area', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            mockupIds: targetMockupIds,
+            area: normalizedArea,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Update all mockups in the list
+          const updatedMockupsMap = new Map(data.mockups.map((m: any) => [m.id, m]))
+          setMockups((prev) => prev.map(m => updatedMockupsMap.get(m.id) || m))
+          setDesignAreas((prev) => {
+            const updated = { ...prev }
+            data.mockups.forEach((m: any) => {
+              updated[m.id] = normalizeMockupArea(m)
+            })
+            return updated
+          })
+          // Update current mockup
+          if (updatedMockupsMap.has(currentMockup.id)) {
+            setCurrentMockup(updatedMockupsMap.get(currentMockup.id))
+          }
+        }
+      } else {
+        // Update single mockup
+        const response = await fetch(`/api/mockups/${currentMockup.id}/update-design-area`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(normalizedArea),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setCurrentMockup(data.mockup)
+          // Update mockup in the list
+          setMockups((prev) => prev.map(m => m.id === data.mockup.id ? data.mockup : m))
+          setDesignAreas((prev) => ({
+            ...prev,
+            [data.mockup.id]: normalizeMockupArea(data.mockup),
+          }))
+        }
       }
     } catch (error) {
       console.error('Error updating design area:', error)
@@ -303,11 +454,104 @@ export default function Home() {
                   <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
                     <span className="text-white font-bold text-xl">2</span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-2xl font-bold text-gray-800">Define Design Area</h2>
                     <p className="text-gray-500">Kéo và resize khung để xác định vùng design. Upload design để xem preview real-time.</p>
+                    {areaSelectedMockupIds.length > 1 && (
+                      <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800">
+                          💡 <strong>{areaSelectedMockupIds.length} mockups</strong> đã được chọn. Thay đổi area sẽ áp dụng cho tất cả mockups đã chọn.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Multi-Mockup Selector for Area Definition */}
+                {mockups.length > 1 && (
+                  <div className="mb-6">
+                    <MultiMockupSelector
+                      mockups={mockups}
+                      selectedMockupIds={areaSelectedMockupIds}
+                      onSelectionChange={(ids) => {
+                        const nextSelection =
+                          ids.length === 0 && currentMockup ? [currentMockup.id] : ids
+                        updateAreaSelection(nextSelection)
+                        // If current mockup is deselected, switch to first selected
+                        if (nextSelection.length > 0 && (!currentMockup || !nextSelection.includes(currentMockup.id))) {
+                          const newCurrent = mockups.find(m => nextSelection.includes(m.id))
+                          if (newCurrent) {
+                            setCurrentMockup(newCurrent)
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                {areaSelectedMockupIds.length > 1 && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+                    <div className="text-sm text-blue-900">
+                      Áp dụng thay đổi cho <strong>{areaSelectedMockupIds.length}</strong> mockups được chọn
+                    </div>
+                    <label className="flex items-center space-x-2 text-sm font-medium text-blue-900">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                        checked={applyAreaToSelection}
+                        onChange={(e) => setApplyAreaToSelection(e.target.checked)}
+                      />
+                      <span>Batch update</span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Mockup Switcher - Quick switch between selected mockups */}
+                {areaSelectedMockupIds.length > 1 && (
+                  <div className="mb-6 p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-800">Switch Mockup View</h3>
+                      <span className="text-xs text-gray-600">
+                        {areaSelectedMockupIds.findIndex(id => id === currentMockup?.id) + 1} / {areaSelectedMockupIds.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {areaSelectedMockupIds.map((mockupId) => {
+                        const mockup = mockups.find(m => m.id === mockupId)
+                        if (!mockup) return null
+                        const isActive = currentMockup?.id === mockupId
+                        return (
+                          <button
+                            key={mockupId}
+                            onClick={() => {
+                              // Ensure we use the latest mockup data from the list
+                              const latestMockup = mockups.find(m => m.id === mockupId) || mockup
+                              setCurrentMockup(latestMockup)
+                            }}
+                            className={`
+                              px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium
+                              ${isActive
+                                ? 'bg-purple-500 text-white border-purple-600 shadow-md'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-8 h-8 rounded overflow-hidden border-2 ${isActive ? 'border-white' : 'border-gray-200'}`}>
+                                <img
+                                  src={mockup.imageUrl}
+                                  alt={mockup.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <span>{mockup.name}</span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Preview Design Selector */}
                 <div className="mb-6 bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
@@ -397,11 +641,24 @@ export default function Home() {
                 </div>
 
                 <div className="bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-300">
-                  <DesignAreaSelector
-                    mockup={currentMockup}
-                    onAreaChange={handleDesignAreaChange}
-                    previewDesign={previewDesign}
-                  />
+                  {currentMockup && (
+                    <DesignAreaSelector
+                      key={currentMockup.id}
+                      mockup={designAreas[currentMockup.id]
+                        ? {
+                            ...currentMockup,
+                            designAreaX: designAreas[currentMockup.id].x,
+                            designAreaY: designAreas[currentMockup.id].y,
+                            designAreaWidth: designAreas[currentMockup.id].width,
+                            designAreaHeight: designAreas[currentMockup.id].height,
+                            designAreaRotation: designAreas[currentMockup.id].rotation,
+                          }
+                        : currentMockup
+                      }
+                      onAreaChange={handleDesignAreaChange}
+                      previewDesign={previewDesign}
+                    />
+                  )}
                 </div>
                 <div className="mt-4 flex justify-end">
                   <button

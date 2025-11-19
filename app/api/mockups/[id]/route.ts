@@ -10,9 +10,6 @@ export async function DELETE(
   try {
     const mockup = await prisma.mockup.findUnique({
       where: { id: params.id },
-      include: {
-        jobs: true
-      }
     })
 
     if (!mockup) {
