@@ -32,6 +32,14 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
     height: mockup.designAreaHeight,
     rotation: mockup.designAreaRotation || 0,
   })
+  // Local input values (strings) to allow free typing
+  const [inputValues, setInputValues] = useState({
+    x: '',
+    y: '',
+    width: '',
+    height: '',
+    rotation: '',
+  })
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [isRotating, setIsRotating] = useState(false)
@@ -56,12 +64,21 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   useEffect(() => {
     // Convert normalized coordinates (0-1) to pixels for display
     if (imageSize.width > 0 && imageSize.height > 0) {
-      setArea({
+      const newArea = {
         x: mockup.designAreaX * imageSize.width,
         y: mockup.designAreaY * imageSize.height,
         width: mockup.designAreaWidth * imageSize.width,
         height: mockup.designAreaHeight * imageSize.height,
         rotation: mockup.designAreaRotation || 0,
+      }
+      setArea(newArea)
+      // Update input values when area changes from outside (e.g., dragging)
+      setInputValues({
+        x: Math.round(newArea.x).toString(),
+        y: Math.round(newArea.y).toString(),
+        width: Math.round(newArea.width).toString(),
+        height: Math.round(newArea.height).toString(),
+        rotation: Math.round(newArea.rotation).toString(),
       })
     }
   }, [mockup, imageSize])
@@ -226,6 +243,15 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
         // Update local state immediately for smooth UI
         setArea(updatedArea)
         
+        // Update input values when dragging/resizing
+        setInputValues({
+          x: Math.round(updatedArea.x).toString(),
+          y: Math.round(updatedArea.y).toString(),
+          width: Math.round(updatedArea.width).toString(),
+          height: Math.round(updatedArea.height).toString(),
+          rotation: Math.round(updatedArea.rotation).toString(),
+        })
+        
         // Throttle callback - only call every 50ms
         pendingAreaRef.current = { area: updatedArea, imageSize: currentImageSize }
         const now = Date.now()
@@ -276,6 +302,66 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   const scaleY = imageSize.height > 0 ? area.y / imageSize.height : 0
   const scaleWidth = imageSize.width > 0 ? area.width / imageSize.width : 0
   const scaleHeight = imageSize.height > 0 ? area.height / imageSize.height : 0
+
+  // Handle input change - just update local state, no validation yet
+  const handleInputChange = (field: 'x' | 'y' | 'width' | 'height' | 'rotation', value: string) => {
+    // Allow empty string and any input while typing
+    setInputValues(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Validate and apply input value when user finishes editing (blur or Enter)
+  const handleInputBlur = (field: 'x' | 'y' | 'width' | 'height' | 'rotation') => {
+    if (imageSize.width === 0 || imageSize.height === 0) return
+
+    const valueStr = inputValues[field]
+    const numValue = parseFloat(valueStr)
+    
+    // If empty or invalid, reset to current area value
+    if (isNaN(numValue) || valueStr === '') {
+      setInputValues(prev => ({
+        ...prev,
+        [field]: field === 'rotation' 
+          ? Math.round(area.rotation).toString()
+          : Math.round(area[field]).toString()
+      }))
+      return
+    }
+
+    let updatedArea = { ...area }
+
+    if (field === 'x') {
+      updatedArea.x = Math.max(0, Math.min(numValue, imageSize.width - area.width))
+    } else if (field === 'y') {
+      updatedArea.y = Math.max(0, Math.min(numValue, imageSize.height - area.height))
+    } else if (field === 'width') {
+      const newWidth = Math.max(50, Math.min(numValue, imageSize.width - area.x))
+      updatedArea.width = newWidth
+    } else if (field === 'height') {
+      const newHeight = Math.max(50, Math.min(numValue, imageSize.height - area.y))
+      updatedArea.height = newHeight
+    } else if (field === 'rotation') {
+      updatedArea.rotation = ((numValue % 360) + 360) % 360
+    }
+
+    setArea(updatedArea)
+    onAreaChange(updatedArea, imageSize)
+    
+    // Update input value to the validated value
+    setInputValues(prev => ({
+      ...prev,
+      [field]: field === 'rotation'
+        ? Math.round(updatedArea.rotation).toString()
+        : Math.round(updatedArea[field]).toString()
+    }))
+  }
+
+  // Handle Enter key
+  const handleInputKeyDown = (e: React.KeyboardEvent, field: 'x' | 'y' | 'width' | 'height' | 'rotation') => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+      handleInputBlur(field)
+    }
+  }
 
   return (
     <div className="w-full space-y-6">
@@ -343,20 +429,105 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
               </div>
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+            <h4 className="font-semibold text-gray-700 mb-3">Nhập kích thước thủ công</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Position X */}
               <div>
-                <span className="font-medium">Position:</span> ({Math.round(area.x)}, {Math.round(area.y)})
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Vị trí X (px)
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.x}
+                  onChange={(e) => handleInputChange('x', e.target.value)}
+                  onBlur={() => handleInputBlur('x')}
+                  onKeyDown={(e) => handleInputKeyDown(e, 'x')}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
+              
+              {/* Position Y */}
               <div>
-                <span className="font-medium">Size:</span> {Math.round(area.width)} × {Math.round(area.height)}
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Vị trí Y (px)
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.y}
+                  onChange={(e) => handleInputChange('y', e.target.value)}
+                  onBlur={() => handleInputBlur('y')}
+                  onKeyDown={(e) => handleInputKeyDown(e, 'y')}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
+              
+              {/* Width */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Chiều rộng (px)
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.width}
+                  onChange={(e) => handleInputChange('width', e.target.value)}
+                  onBlur={() => handleInputBlur('width')}
+                  onKeyDown={(e) => handleInputKeyDown(e, 'width')}
+                  placeholder="50"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              {/* Height */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Chiều cao (px)
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.height}
+                  onChange={(e) => handleInputChange('height', e.target.value)}
+                  onBlur={() => handleInputBlur('height')}
+                  onKeyDown={(e) => handleInputKeyDown(e, 'height')}
+                  placeholder="50"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              {/* Rotation */}
               <div className="col-span-2">
-                <span className="font-medium">Rotation:</span> {Math.round(area.rotation)}°
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Góc xoay (độ)
+                </label>
+                <input
+                  type="text"
+                  value={inputValues.rotation}
+                  onChange={(e) => handleInputChange('rotation', e.target.value)}
+                  onBlur={() => handleInputBlur('rotation')}
+                  onKeyDown={(e) => handleInputKeyDown(e, 'rotation')}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
-            <div className="mt-2 text-xs text-gray-500">
-              Scale: X={scaleX.toFixed(2)}, Y={scaleY.toFixed(2)}, W={scaleWidth.toFixed(2)}, H={scaleHeight.toFixed(2)}
+            
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="font-medium text-gray-600">Position:</span> ({Math.round(area.x)}, {Math.round(area.y)})
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Size:</span> {Math.round(area.width)} × {Math.round(area.height)}
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium text-gray-600">Rotation:</span> {Math.round(area.rotation)}°
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                Scale: X={scaleX.toFixed(2)}, Y={scaleY.toFixed(2)}, W={scaleWidth.toFixed(2)}, H={scaleHeight.toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
