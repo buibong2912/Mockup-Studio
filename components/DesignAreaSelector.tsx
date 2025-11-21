@@ -356,7 +356,7 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
   }
 
   // Handle Enter key
-  const handleInputKeyDown = (e: React.KeyboardEvent, field: 'x' | 'y' | 'width' | 'height' | 'rotation') => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, field: 'x' | 'y' | 'width' | 'height' | 'rotation') => {
     if (e.key === 'Enter') {
       e.currentTarget.blur()
       handleInputBlur(field)
