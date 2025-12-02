@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost'],
+    domains: ['localhost',"studio.nexgenbros.com"],
     unoptimized: process.env.NODE_ENV === 'production',
   },
   experimental: {
