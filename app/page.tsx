@@ -163,12 +163,27 @@ export default function Home() {
       })
 
       if (response.ok) {
-        // Refresh mockups from server to ensure consistency
-        await fetchMockups()
+        // Update local state immediately for better UX
+        const updatedMockups = mockups.filter(m => m.id !== mockupId)
+        setMockups(updatedMockups)
+        setDesignAreas((prev) => {
+          const { [mockupId]: _, ...rest } = prev
+          return rest
+        })
         
         // Remove from selectedMockupIds
         const updatedSelectedIds = selectedMockupIds.filter(id => id !== mockupId)
         setSelectedMockupIds(updatedSelectedIds)
+        
+        // Update areaSelectedMockupIds
+        setAreaSelectedMockupIds((prev) => {
+          const filtered = prev.filter(id => id !== mockupId)
+          const next = filtered.length > 0 ? filtered : (updatedMockups.length > 0 ? [updatedMockups[0].id] : [])
+          if (next.length <= 1) {
+            setApplyAreaToSelection(false)
+          }
+          return next
+        })
         
         if (currentMockup?.id === mockupId) {
           if (updatedMockups.length > 0) {
@@ -184,6 +199,9 @@ export default function Home() {
             setActiveStep(1)
           }
         }
+        
+        // Refresh from server in background to ensure consistency
+        fetchMockups().catch(console.error)
       } else {
         alert('Failed to delete mockup')
       }
