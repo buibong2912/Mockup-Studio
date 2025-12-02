@@ -64,7 +64,13 @@ export async function POST(request: NextRequest) {
       mockups.push(mockup)
     }
 
-    return NextResponse.json({ mockups })
+    return NextResponse.json({ mockups }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error uploading mockups:', error)
     return NextResponse.json(

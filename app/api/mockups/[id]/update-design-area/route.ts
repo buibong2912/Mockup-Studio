@@ -19,7 +19,13 @@ export async function POST(
       }
     })
 
-    return NextResponse.json({ mockup })
+    return NextResponse.json({ mockup }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error updating design area:', error)
     return NextResponse.json(

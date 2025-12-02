@@ -14,7 +14,13 @@ export async function GET(request: NextRequest) {
 
     console.log(`[GET /api/mockups] Found ${mockups.length} mockups`)
     
-    return NextResponse.json({ mockups })
+    return NextResponse.json({ mockups }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error fetching mockups:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
-import { join } from 'path'
+import * as path from 'path'
 import { existsSync } from 'fs'
-import { getPublicFilePath } from '@/lib/file-utils'
+import { getPublicFilePath, getPublicPath } from '@/lib/file-utils'
 
 export async function GET(
   request: NextRequest,
@@ -34,16 +34,50 @@ export async function GET(
 
     console.log(`[GET /api/uploads] Looking for file at: ${fullPath}`)
     console.log(`[GET /api/uploads] process.cwd(): ${process.cwd()}`)
+    console.log(`[GET /api/uploads] NODE_ENV: ${process.env.NODE_ENV}`)
 
     // Check if file exists
     if (!existsSync(fullPath)) {
-      console.error(`[GET /api/uploads] File not found: ${fullPath}`)
-      return NextResponse.json({ 
-        error: 'File not found',
-        requestedPath: filePath,
-        checkedPath: fullPath,
-        cwd: process.cwd()
-      }, { status: 404 })
+      // Try alternative paths in production
+      const alternativePaths: string[] = []
+      
+      // Try with direct public path
+      const directPath = path.join(process.cwd(), 'public', 'uploads', filePath)
+      if (directPath !== fullPath) {
+        alternativePaths.push(directPath)
+      }
+      
+      // Try with standalone mode paths
+      const standalonePaths = [
+        path.join(process.cwd(), '..', 'public', 'uploads', filePath),
+        path.join(process.cwd(), '../..', 'public', 'uploads', filePath),
+      ]
+      alternativePaths.push(...standalonePaths)
+      
+      // Check if any alternative path exists
+      let foundPath: string | null = null
+      for (const altPath of alternativePaths) {
+        if (existsSync(altPath)) {
+          foundPath = altPath
+          console.log(`[GET /api/uploads] Found file at alternative path: ${altPath}`)
+          break
+        }
+      }
+      
+      if (!foundPath) {
+        console.error(`[GET /api/uploads] File not found at: ${fullPath}`)
+        console.error(`[GET /api/uploads] Tried alternative paths:`, alternativePaths)
+        return NextResponse.json({ 
+          error: 'File not found',
+          requestedPath: filePath,
+          checkedPath: fullPath,
+          alternativePaths: alternativePaths,
+          cwd: process.cwd(),
+          publicPath: getPublicPath(),
+        }, { status: 404 })
+      }
+      
+      fullPath = foundPath
     }
 
     console.log(`[GET /api/uploads] Serving file: ${fullPath}`)

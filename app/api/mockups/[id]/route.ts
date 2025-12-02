@@ -30,7 +30,13 @@ export async function DELETE(
       where: { id: params.id }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error deleting mockup:', error)
     return NextResponse.json(

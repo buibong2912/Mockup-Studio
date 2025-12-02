@@ -42,7 +42,13 @@ export async function POST(request: NextRequest) {
       designs.push(design)
     }
 
-    return NextResponse.json({ designs })
+    return NextResponse.json({ designs }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error uploading designs:', error)
     return NextResponse.json(

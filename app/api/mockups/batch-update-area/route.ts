@@ -36,7 +36,13 @@ export async function POST(request: NextRequest) {
       )
     )
 
-    return NextResponse.json({ mockups: updatedMockups })
+    return NextResponse.json({ mockups: updatedMockups }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
   } catch (error) {
     console.error('Error batch updating design areas:', error)
     return NextResponse.json(

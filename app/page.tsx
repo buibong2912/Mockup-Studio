@@ -50,7 +50,12 @@ export default function Home() {
 
   const fetchMockups = async () => {
     try {
-      const response = await fetch('/api/mockups')
+      const response = await fetch('/api/mockups', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
       if (response.ok) {
         const data = await response.json()
         const newMockups = data.mockups
@@ -105,21 +110,11 @@ export default function Home() {
     }
   }
 
-  const handleMockupUpload = (uploadedMockups: any[]) => {
+  const handleMockupUpload = async (uploadedMockups: any[]) => {
     if (uploadedMockups.length === 0) return
 
-    // Add all new mockups to the list
-    setMockups((prev) => [...uploadedMockups, ...prev])
-    
-    // Update design areas for all new mockups
-    const newAreas: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> = {}
-    uploadedMockups.forEach((mockup) => {
-      newAreas[mockup.id] = normalizeMockupArea(mockup)
-    })
-    setDesignAreas((prev) => ({
-      ...prev,
-      ...newAreas,
-    }))
+    // Refresh mockups from server to ensure consistency
+    await fetchMockups()
     
     // Set the first uploaded mockup as current
     const firstMockup = uploadedMockups[0]
@@ -161,23 +156,15 @@ export default function Home() {
     try {
       const response = await fetch(`/api/mockups/${mockupId}`, {
         method: 'DELETE',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       })
 
       if (response.ok) {
-        const updatedMockups = mockups.filter(m => m.id !== mockupId)
-        setMockups(updatedMockups)
-        setDesignAreas((prev) => {
-          const { [mockupId]: _, ...rest } = prev
-          return rest
-        })
-        setAreaSelectedMockupIds((prev) => {
-          const filtered = prev.filter(id => id !== mockupId)
-          const next = filtered.length > 0 ? filtered : (updatedMockups.length > 0 ? [updatedMockups[0].id] : [])
-          if (next.length <= 1) {
-            setApplyAreaToSelection(false)
-          }
-          return next
-        })
+        // Refresh mockups from server to ensure consistency
+        await fetchMockups()
         
         // Remove from selectedMockupIds
         const updatedSelectedIds = selectedMockupIds.filter(id => id !== mockupId)
@@ -259,11 +246,13 @@ export default function Home() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
           },
           body: JSON.stringify({
             mockupIds: targetMockupIds,
             area: normalizedArea,
           }),
+          cache: 'no-store',
         })
 
         if (response.ok) {
@@ -289,8 +278,10 @@ export default function Home() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
           },
           body: JSON.stringify(normalizedArea),
+          cache: 'no-store',
         })
 
         if (response.ok) {
@@ -649,6 +640,10 @@ export default function Home() {
                             const response = await fetch('/api/designs/upload', {
                               method: 'POST',
                               body: formData,
+                              cache: 'no-store',
+                              headers: {
+                                'Cache-Control': 'no-cache',
+                              },
                             })
 
                             if (response.ok) {
