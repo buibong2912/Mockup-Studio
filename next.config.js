@@ -3,6 +3,9 @@ const nextConfig = {
   // Only use standalone for VPS deployment, not for Vercel
   // Vercel uses serverless functions and doesn't need standalone mode
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
+  // Disable outputFileTracing on Vercel to prevent stack overflow
+  // Vercel has its own file tracing mechanism
+  ...(process.env.VERCEL ? { outputFileTracing: false } : {}),
   images: {
     domains: ['localhost',"studio.nexgenbros.com"],
     unoptimized: process.env.NODE_ENV === 'production',
@@ -11,25 +14,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-  },
-  // Exclude large directories from file tracing to prevent stack overflow
-  outputFileTracingExcludes: {
-    '*': [
-      'node_modules/@swc/core-linux-x64-gnu/**',
-      'node_modules/@swc/core-linux-x64-musl/**',
-      'node_modules/@esbuild/linux-x64/**',
-      'public/uploads/**',
-      'public/outputs/**',
-      'prisma/dev.db*',
-      '.git/**',
-      '*.md',
-      '*.sh',
-      'ecosystem.config.js',
-      'deploy.sh',
-      'fix-pm2.sh',
-      'DEPLOY.md',
-      'FIX_*.md',
-    ],
   },
   async rewrites() {
     return [

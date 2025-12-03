@@ -39,8 +39,9 @@ next-env.d.ts
 /prisma/dev.db
 /prisma/dev.db-journal
 
-# uploads (exclude all files in these directories)
-/public/uploads/**
-/public/outputs/**
-
-
+# uploads and outputs - CRITICAL: These should NEVER be committed
+# They contain user-uploaded files and generated outputs
+/public/uploads/
+/public/outputs/
+public/uploads/
+public/outputs/
