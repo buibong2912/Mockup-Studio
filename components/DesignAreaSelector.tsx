@@ -523,10 +523,10 @@ export default function DesignAreaSelector({ mockup, onAreaChange, previewDesign
                 </div>
                 <div className="col-span-2">
                   <span className="font-medium text-gray-600">Rotation:</span> {Math.round(area.rotation)}°
-                </div>
               </div>
-              <div className="mt-2 text-xs text-gray-500">
-                Scale: X={scaleX.toFixed(2)}, Y={scaleY.toFixed(2)}, W={scaleWidth.toFixed(2)}, H={scaleHeight.toFixed(2)}
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              Scale: X={scaleX.toFixed(2)}, Y={scaleY.toFixed(2)}, W={scaleWidth.toFixed(2)}, H={scaleHeight.toFixed(2)}
               </div>
             </div>
           </div>

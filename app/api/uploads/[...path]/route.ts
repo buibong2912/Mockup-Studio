@@ -67,14 +67,14 @@ export async function GET(
       if (!foundPath) {
         console.error(`[GET /api/uploads] File not found at: ${fullPath}`)
         console.error(`[GET /api/uploads] Tried alternative paths:`, alternativePaths)
-        return NextResponse.json({ 
-          error: 'File not found',
-          requestedPath: filePath,
-          checkedPath: fullPath,
+      return NextResponse.json({ 
+        error: 'File not found',
+        requestedPath: filePath,
+        checkedPath: fullPath,
           alternativePaths: alternativePaths,
           cwd: process.cwd(),
           publicPath: getPublicPath(),
-        }, { status: 404 })
+      }, { status: 404 })
       }
       
       fullPath = foundPath

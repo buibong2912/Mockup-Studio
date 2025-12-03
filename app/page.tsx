@@ -50,63 +50,82 @@ export default function Home() {
 
   const fetchMockups = async () => {
     try {
+      console.log('[fetchMockups] Starting fetch...')
       const response = await fetch('/api/mockups', {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
         },
       })
-      if (response.ok) {
-        const data = await response.json()
-        const newMockups = data.mockups
-        const areaMap: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> = {}
-        newMockups.forEach((mockup: any) => {
-          areaMap[mockup.id] = normalizeMockupArea(mockup)
-        })
-        
-        // Preserve current mockup selection if it still exists
-        setCurrentMockup((prevCurrent: any) => {
-          if (prevCurrent) {
-            // Find the updated version of current mockup in new list
-            const updatedCurrent = newMockups.find((m: any) => m.id === prevCurrent.id)
-            if (updatedCurrent) {
-              return updatedCurrent
-            }
-          }
-          // Auto-select first mockup only if no current mockup
-          if (!prevCurrent && newMockups.length > 0) {
-            const firstMockup = newMockups[0]
-            // Also add to selectedMockupIds
-            setSelectedMockupIds((prevIds) => {
-              if (prevIds.length === 0) {
-                return [firstMockup.id]
-              }
-              return prevIds
-            })
-            setAreaSelectedMockupIds((prevIds) => {
-              if (prevIds.length === 0) {
-                return [firstMockup.id]
-              }
-              return prevIds
-            })
-            return firstMockup
-          }
-          return prevCurrent
-        })
-        // Update mockups list and cached design areas
-        setMockups(newMockups)
-        setDesignAreas(areaMap)
-        setAreaSelectedMockupIds((prev) => {
-          const valid = prev.filter((id) => newMockups.some((m: any) => m.id === id))
-          const next = valid.length > 0 ? valid : (newMockups.length > 0 ? [newMockups[0].id] : [])
-          if (next.length <= 1) {
-            setApplyAreaToSelection(false)
-          }
-          return next
-        })
+      
+      console.log('[fetchMockups] Response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[fetchMockups] API error:', errorData)
+        alert(`Failed to load mockups: ${errorData.error || response.statusText}`)
+        return
       }
+      
+      const data = await response.json()
+      console.log('[fetchMockups] Received data:', { mockupsCount: data.mockups?.length || 0 })
+      
+      if (!data.mockups || !Array.isArray(data.mockups)) {
+        console.error('[fetchMockups] Invalid data format:', data)
+        return
+      }
+      
+      const newMockups = data.mockups
+      const areaMap: Record<string, { x: number; y: number; width: number; height: number; rotation: number }> = {}
+      newMockups.forEach((mockup: any) => {
+        areaMap[mockup.id] = normalizeMockupArea(mockup)
+      })
+      
+      // Preserve current mockup selection if it still exists
+      setCurrentMockup((prevCurrent: any) => {
+        if (prevCurrent) {
+          // Find the updated version of current mockup in new list
+          const updatedCurrent = newMockups.find((m: any) => m.id === prevCurrent.id)
+          if (updatedCurrent) {
+            return updatedCurrent
+          }
+        }
+        // Auto-select first mockup only if no current mockup
+        if (!prevCurrent && newMockups.length > 0) {
+          const firstMockup = newMockups[0]
+          // Also add to selectedMockupIds
+          setSelectedMockupIds((prevIds) => {
+            if (prevIds.length === 0) {
+              return [firstMockup.id]
+            }
+            return prevIds
+          })
+          setAreaSelectedMockupIds((prevIds) => {
+            if (prevIds.length === 0) {
+              return [firstMockup.id]
+            }
+            return prevIds
+          })
+          return firstMockup
+        }
+        return prevCurrent
+      })
+      // Update mockups list and cached design areas
+      setMockups(newMockups)
+      setDesignAreas(areaMap)
+      setAreaSelectedMockupIds((prev) => {
+        const valid = prev.filter((id) => newMockups.some((m: any) => m.id === id))
+        const next = valid.length > 0 ? valid : (newMockups.length > 0 ? [newMockups[0].id] : [])
+        if (next.length <= 1) {
+          setApplyAreaToSelection(false)
+        }
+        return next
+      })
+      
+      console.log('[fetchMockups] Successfully updated mockups:', newMockups.length)
     } catch (error) {
-      console.error('Error fetching mockups:', error)
+      console.error('[fetchMockups] Fetch error:', error)
+      alert(`Error loading mockups: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
