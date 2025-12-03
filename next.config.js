@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // Only use standalone for VPS deployment, not for Vercel
+  // Vercel uses serverless functions and doesn't need standalone mode
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   images: {
     domains: ['localhost',"studio.nexgenbros.com"],
     unoptimized: process.env.NODE_ENV === 'production',

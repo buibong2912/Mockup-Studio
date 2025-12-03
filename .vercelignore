@@ -1,0 +1,22 @@
+# Ignore files that cause issues with Vercel build
+node_modules
+.next
+.git
+.env*.local
+*.log
+.DS_Store
+
+# Ignore uploads and outputs (these should be stored in external storage for Vercel)
+public/uploads
+public/outputs
+
+# Ignore PM2 and deployment files (not needed for Vercel)
+ecosystem.config.js
+deploy.sh
+fix-pm2.sh
+*.sh
+
+# Ignore local development files
+prisma/dev.db
+prisma/dev.db-journal
+

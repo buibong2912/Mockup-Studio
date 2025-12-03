@@ -227,6 +227,21 @@ npm install
 npm run build
 ```
 
+### Lỗi: "next start" does not work with "output: standalone"
+**Nguyên nhân:** PM2 đang chạy `npm start` thay vì standalone server.
+
+**Giải pháp:**
+```bash
+# Dừng PM2 process hiện tại
+pm2 stop mockup-studio
+pm2 delete mockup-studio
+
+# Chạy lại với standalone server
+pm2 start ecosystem.config.js
+# HOẶC
+pm2 start npm --name "mockup-studio" -- run start:prod
+```
+
 ## Cấu trúc thư mục quan trọng
 
 ```
