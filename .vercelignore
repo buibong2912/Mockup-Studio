@@ -7,8 +7,9 @@ node_modules
 .DS_Store
 
 # Ignore uploads and outputs (these should be stored in external storage for Vercel)
-public/uploads
-public/outputs
+# Use wildcards to exclude all subdirectories
+public/uploads/**
+public/outputs/**
 
 # Ignore PM2 and deployment files (not needed for Vercel)
 ecosystem.config.js
@@ -19,4 +20,12 @@ fix-pm2.sh
 # Ignore local development files
 prisma/dev.db
 prisma/dev.db-journal
+
+# Ignore documentation files
+*.md
+!README.md
+
+# Ignore fix documentation files
+FIX_*.md
+DEPLOY.md
 

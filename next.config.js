@@ -12,6 +12,25 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Exclude large directories from file tracing to prevent stack overflow
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/@swc/core-linux-x64-gnu/**',
+      'node_modules/@swc/core-linux-x64-musl/**',
+      'node_modules/@esbuild/linux-x64/**',
+      'public/uploads/**',
+      'public/outputs/**',
+      'prisma/dev.db*',
+      '.git/**',
+      '*.md',
+      '*.sh',
+      'ecosystem.config.js',
+      'deploy.sh',
+      'fix-pm2.sh',
+      'DEPLOY.md',
+      'FIX_*.md',
+    ],
+  },
   async rewrites() {
     return [
       {
