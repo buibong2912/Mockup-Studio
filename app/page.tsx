@@ -45,6 +45,7 @@ export default function Home() {
 
   // Fetch all mockups on mount
   useEffect(() => {
+    console.log('[Home] Component mounted, fetching mockups...')
     fetchMockups()
   }, [])
 
